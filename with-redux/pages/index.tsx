@@ -1,24 +1,18 @@
 /* eslint-disable @next/next/no-img-element */
 import Head from "next/head";
-import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  store,
+  wrapper,
   getPokemon,
   selectFilteredPokemon,
   selectSearch,
-  rehydrate,
   setSearch,
 } from "../src/store";
 
 import styles from "../styles/Home.module.css";
 
-function Home({ initialState }) {
+function Home() {
   const dispatch = useDispatch();
-
-  useEffect(() => {
-    dispatch(rehydrate(initialState.pokemon));
-  }, [dispatch, initialState]);
 
   const pokemon = useSelector(selectFilteredPokemon);
   const search = useSelector(selectSearch);
@@ -55,13 +49,14 @@ function Home({ initialState }) {
   );
 }
 
-export async function getServerSideProps() {
-  await store.dispatch(getPokemon());
-  return {
-    props: {
-      initialState: store.getState(),
-    },
-  };
-}
+export const getServerSideProps = wrapper.getServerSideProps(
+  (store) =>
+    async function getServerSideProps() {
+      await store.dispatch(getPokemon());
+      return {
+        props: {},
+      };
+    }
+);
 
 export default Home;

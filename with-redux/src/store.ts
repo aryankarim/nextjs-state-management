@@ -5,6 +5,7 @@ import {
   configureStore,
   ThunkAction,
 } from "@reduxjs/toolkit";
+import { createWrapper, HYDRATE } from "next-redux-wrapper";
 
 interface Pokemon {
   id: number;
@@ -29,7 +30,7 @@ const initialState: PokemonState = {
 };
 
 export const getPokemon = createAsyncThunk("pokemon/getPokemon", async () => {
-  const response = await await fetch(
+  const response = await fetch(
     "https://jherr-pokemon.s3.us-west-1.amazonaws.com/index.json"
   );
   return await response.json();
@@ -39,13 +40,6 @@ export const pokemonSlice = createSlice({
   name: "pokemon",
   initialState,
   reducers: {
-    rehydrate(state, action: PayloadAction<PokemonState>) {
-      state.error = action.payload.error;
-      state.pending = action.payload.pending;
-      state.pokemon = action.payload.pokemon;
-      state.filteredPokemon = action.payload.filteredPokemon;
-      state.search = action.payload.search;
-    },
     setSearch(state, action: PayloadAction<string>) {
       state.search = action.payload;
       state.filteredPokemon = state.pokemon.filter(({ name }) =>
@@ -66,18 +60,25 @@ export const pokemonSlice = createSlice({
       .addCase(getPokemon.rejected, (state) => {
         state.pending = false;
         state.error = true;
+      })
+      .addCase(HYDRATE, (state, action: any) => {
+        return {
+          ...state,
+          ...action.payload.pokemon,
+        };
       });
   },
 });
 
-export const store = configureStore({
-  reducer: {
-    pokemon: pokemonSlice.reducer,
-  },
-});
+export const wrapper = createWrapper(() =>
+  configureStore({
+    reducer: {
+      pokemon: pokemonSlice.reducer,
+    },
+  })
+);
 
-export type AppDispatch = typeof store.dispatch;
-export type RootState = ReturnType<typeof store.getState>;
+export type RootState = ReturnType<any>;
 export type AppThunk<ReturnType = void> = ThunkAction<
   ReturnType,
   RootState,
@@ -85,7 +86,7 @@ export type AppThunk<ReturnType = void> = ThunkAction<
   Action<string>
 >;
 
-export const { rehydrate, setSearch } = pokemonSlice.actions;
+export const { setSearch } = pokemonSlice.actions;
 
 export const selectSearch = (state: RootState) => state.pokemon.search;
 export const selectFilteredPokemon = (state: RootState) =>
